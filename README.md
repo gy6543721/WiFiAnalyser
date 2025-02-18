@@ -1,4 +1,4 @@
 # WiFiAnalyser
 Native Kotlin App
 
-<img width="270" src="https://github.com/user-attachments/assets/25694624-1cde-42ac-a259-24ff2dc8b7df">
+<img width="270" src="https://github.com/user-attachments/assets/5de71d19-05f5-4807-bacd-0b3e6a7ad5dd">
