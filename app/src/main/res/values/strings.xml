@@ -1,17 +1,17 @@
 <resources>
     <string name="app_name">Wi-Fi Analyser</string>
-    <string name="data_exported">Vault Exported</string>
-    <string name="export_data">Export Vault</string>
+    <string name="data_exported">Data Exported</string>
+    <string name="export_data">Export Data</string>
     <string name="no_gps_location_provider_available">No GPS location provider available.</string>
     <string name="networks">Nearby Networks</string>
     <string name="ssid">SSID</string>
     <string name="capabilities">Capabilities</string>
     <string name="gps">Current Geolocation</string>
     <string name="level">Level</string>
-    <string name="security">SecurityType</string>
+    <string name="security_type">SecurityType</string>
     <string name="open">Open\n</string>
-    <string name="networksCaptured">Total Networks Captured</string>
-    <string name="lastUpdateTime">Last Update</string>
+    <string name="networks_captured">Total Networks Captured</string>
+    <string name="last_update_time">Last Update</string>
     <string name="frequency">MHz</string>
     <string name="info">Info</string>
     <string name="permission_denied">Permission Required</string>
