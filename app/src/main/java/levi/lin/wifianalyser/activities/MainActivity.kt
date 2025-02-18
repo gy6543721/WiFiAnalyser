@@ -9,7 +9,6 @@ import android.os.Bundle
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.Manifest
-import android.annotation.SuppressLint
 import android.net.Uri
 import android.net.wifi.ScanResult
 import androidx.core.app.ActivityCompat
@@ -19,7 +18,6 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-
 import levi.lin.wifianalyser.R
 import levi.lin.wifianalyser.data.DataStorage
 import java.time.Instant
@@ -46,11 +44,6 @@ class MainActivity : AppCompatActivity(), LocationListener {
             insets
         }
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions()
-        }
-
         dataStorage = DataStorage(this)
 
         wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
@@ -60,7 +53,11 @@ class MainActivity : AppCompatActivity(), LocationListener {
 
         setupExportButton()
 
-        startLocationUpdates()
+        if (checkPermissions()) {
+            startLocationUpdates()
+        } else {
+            requestPermissions()
+        }
     }
 
     private fun setupExportButton() {
@@ -83,6 +80,11 @@ class MainActivity : AppCompatActivity(), LocationListener {
         }
     }
 
+    private fun checkPermissions(): Boolean {
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
     private fun requestPermissions() {
         ActivityCompat.requestPermissions(
             this,
@@ -91,11 +93,32 @@ class MainActivity : AppCompatActivity(), LocationListener {
         )
     }
 
-    @SuppressLint("MissingPermission")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startLocationUpdates()
+            } else {
+                Toast.makeText(this, getString(R.string.permission_denied), Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private fun startLocationUpdates() {
         val providers = locationManager.allProviders
         if (providers.contains(LocationManager.GPS_PROVIDER)) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000L, 5f, this)
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            } else {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000L, 5f, this)
+            }
 
             val lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
             lastKnownLocation?.let { location ->
@@ -111,9 +134,16 @@ class MainActivity : AppCompatActivity(), LocationListener {
         scanWifi(location.latitude, location.longitude)
     }
 
-    @SuppressLint("MissingPermission")
     private fun scanWifi(latitude: Double, longitude: Double) {
-        val wifiScanResults = wifiManager.scanResults
+        val wifiScanResults = if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        } else {
+            wifiManager.scanResults
+        }
 
         dataStorage.addOrUpdateCluster(latitude, longitude, wifiScanResults)
 
@@ -122,7 +152,6 @@ class MainActivity : AppCompatActivity(), LocationListener {
 
     private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
 
-    @Suppress("DEPRECATION")
     private fun appendClusterToConsole(lat: Double, lon: Double, scanResults: List<ScanResult>) {
         val sb = StringBuilder()
         sb.append("----------------------------------------------------\n")
@@ -130,7 +159,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
         sb.append("[${getString(R.string.lastUpdateTime)}]: ${dateFormatter.format(Instant.now())}\n")
         sb.append("[${getString(R.string.gps)}]\n$lat, $lon\n")
         sb.append("[${getString(R.string.networks)} (${scanResults.size})]\n")
-        sb.append(String.format("%-20s %-10s %-10s %-10s\n", getString(R.string.ssid), getString(R.string.level), getString(R.string.security), getString(R.string.frequency)))
+        sb.append(String.format("%-15s %-15s %-15s %-15s\n", getString(R.string.ssid), getString(R.string.level), getString(R.string.security), getString(R.string.frequency)))
         sb.append("----------------------------------------------------\n")
 
         for (result in scanResults.sortedByDescending { it.level }) {
@@ -141,7 +170,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
                 else -> getString(R.string.open)
             }
 
-            sb.append(String.format("%-20s %-10s %-10s %-10s\n", result.SSID, result.level, securityType, result.frequency))
+            sb.append(String.format("%-15s %-15s %-15s %-15s\n", result.wifiSsid.toString().trim(), result.level.toString().trim(), securityType.toString().trim(), result.frequency.toString().trim()))
         }
 
         consoleTextView.text = sb.toString()

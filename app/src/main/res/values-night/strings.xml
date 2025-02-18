@@ -15,4 +15,5 @@
     <string name="lastUpdateTime">Last Update</string>
     <string name="frequency">MHz</string>
     <string name="info">Info</string>
+    <string name="permission_denied">Permission Required</string>
 </resources>
